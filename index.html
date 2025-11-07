@@ -1,49 +1,181 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <body style="font-family: Arial; background:#111; color:#eee; padding:20px">
-    <h2>Chatbot Tributário 💬</h2>
-    <div id="chat" style="background:#222; padding:15px; border-radius:10px; height:300px; overflow:auto; margin-bottom:10px"></div>
-    <input id="msg" placeholder="Digite sua mensagem" style="width:80%; padding:8px; border-radius:6px; border:none">
-    <button onclick="send()" style="padding:8px 15px; border:none; border-radius:6px; background:#2d6cdf; color:white; cursor:pointer;">Enviar</button>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot Tributário 💬</title>
 
-    <script>
-      // 🔹 Gera ou recupera o ID de sessão para manter memória
-      const sessionKey = 'pl1087_session';
-      let session = localStorage.getItem(sessionKey);
-      if (!session) {
-        session = crypto.randomUUID();
-        localStorage.setItem(sessionKey, session);
+  <!-- Biblioteca para interpretar Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #eee;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+    h2 {
+      margin: 20px;
+      color: #fff;
+      font-weight: 500;
+    }
+    #chat {
+      background: rgba(34, 34, 34, 0.9);
+      width: 90%;
+      max-width: 700px;
+      height: 65vh;
+      border-radius: 12px;
+      padding: 15px;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .msg {
+      margin: 10px 0;
+      display: flex;
+    }
+    .user {
+      justify-content: flex-end;
+    }
+    .bot {
+      justify-content: flex-start;
+    }
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 14px;
+      max-width: 75%;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    .user .bubble {
+      background: #2d6cdf;
+      color: #fff;
+      border-bottom-right-radius: 0;
+    }
+    .bot .bubble {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-bottom-left-radius: 0;
+    }
+    #inputArea {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      width: 90%;
+      max-width: 700px;
+    }
+    #msg {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #222;
+      color: #eee;
+    }
+    button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #2d6cdf;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #3c7cff;
+    }
+
+    /* Melhor formatação para Markdown */
+    .bubble h1, .bubble h2, .bubble h3, .bubble h4 {
+      margin: 6px 0;
+      color: #6fa8dc;
+      font-weight: 500;
+    }
+    .bubble ul, .bubble ol {
+      margin: 4px 0 4px 20px;
+    }
+    .bubble a {
+      color: #66b2ff;
+      text-decoration: none;
+    }
+    .bubble a:hover {
+      text-decoration: underline;
+    }
+    .bubble code {
+      background: #333;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #ffe082;
+    }
+  </style>
+</head>
+<body>
+  <h2>Agente da Reforma Tributária</h2>
+  <div id="chat"></div>
+  <div id="inputArea">
+    <input id="msg" placeholder="Digite sua mensagem..." autocomplete="off">
+    <button onclick="send()">Enviar</button>
+  </div>
+
+  <script>
+    // 🔹 Mantém a sessão entre conversas
+    const sessionKey = 'pl1087_session';
+    let session = localStorage.getItem(sessionKey);
+    if (!session) {
+      session = crypto.randomUUID();
+      localStorage.setItem(sessionKey, session);
+    }
+
+    const chatDiv = document.getElementById('chat');
+
+    // Adiciona uma mensagem na tela
+    function addMessage(who, text) {
+      const div = document.createElement('div');
+      div.className = `msg ${who}`;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = marked.parse(text); // ✅ converte markdown em HTML
+      div.appendChild(bubble);
+      chatDiv.appendChild(div);
+      chatDiv.scrollTo({ top: chatDiv.scrollHeight, behavior: 'smooth' });
+    }
+
+    async function send() {
+      const msg = document.getElementById('msg').value.trim();
+      if (!msg) return;
+      addMessage('user', msg);
+      document.getElementById('msg').value = '';
+
+      addMessage('bot', '_Digitando..._');
+      const typing = chatDiv.lastChild.querySelector('.bubble');
+
+      try {
+        const res = await fetch('https://gage-panurgic-uncontrastively.ngrok-free.dev/webhook/chatbot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: msg, session })
+        });
+
+        if (!res.ok) throw new Error('Erro HTTP ' + res.status);
+
+        const text = await res.text();
+        const data = JSON.parse(text);
+        typing.innerHTML = marked.parse(data.reply || "Sem resposta.");
+      } catch (err) {
+        typing.innerHTML = `<span style="color:red;">Erro: ${err.message}</span>`;
       }
+    }
 
-      async function send() {
-        const msg = document.getElementById('msg').value.trim();
-        if (!msg) return;
-
-        const chatDiv = document.getElementById('chat');
-        chatDiv.innerHTML += `<p><b>Você:</b> ${msg}</p>`;
-        document.getElementById('msg').value = '';
-
-   try {
-  const res = await fetch('https://gage-panurgic-uncontrastively.ngrok-free.dev/webhook/chatbot', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question: msg })
-  });
-
-  if (!res.ok) throw new Error("Erro HTTP " + res.status);
-
-  const text = await res.text();               // ← Recebe como texto
-  const data = JSON.parse(text);               // ← Converte pra JSON
-  const resposta = data.reply || "Sem resposta.";
-
-  chatDiv.innerHTML += `<p><b>Bot:</b> ${resposta}</p>`;
-  chatDiv.scrollTop = chatDiv.scrollHeight;
-
-} catch (err) {
-  chatDiv.innerHTML += `<p style="color:red"><b>Erro:</b> ${err.message}</p>`;
-}
-
-      }
-    </script>
-  </body>
+    // Mensagem inicial
+    addMessage('bot', 'Olá! 👋 Sou o assistente especializado na **Reforma Tributária de 2025 (PL 1087/2025)**. Pergunte o que quiser saber sobre **tributação de lucros e dividendos!**');
+  </script>
+</body>
 </html>
+
+
